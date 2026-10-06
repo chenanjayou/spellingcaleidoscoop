@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>Spelling Werkboek Samensteller</title>
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; background: #f0f2f5; margin: 0; padding: 25px 15px; box-sizing: border-box; }
+    .card { background: white; padding: 28px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); max-width: 640px; width: 100%; box-sizing: border-box; }
+    h2 { margin-top: 0; text-align: center; margin-bottom: 6px; font-size: 21px; }
+    p.subtitle { color: #666; font-size: 13px; text-align: center; margin-bottom: 18px; }
+
+    /* Bron / Map status */
+    .folder-box { border: 2px dashed #0066cc; border-radius: 8px; padding: 16px; text-align: center; cursor: pointer; background: #fafbfc; transition: 0.2s; margin-bottom: 16px; }
+    .folder-box:hover { background: #eef6ff; }
+    .folder-status { font-size: 13px; color: #167a32; font-weight: 600; margin-top: 5px; }
+
+    /* Instellingen */
+    .settings { background: #f8f9fa; border: 1px solid #e2e6ea; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    
+    /* Selectieboxen voor Groep en Blok */
+    .selection-box { background: #ffffff; border: 2px solid #0066cc; border-radius: 8px; padding: 12px; margin-bottom: 14px; text-align: center; }
+    .selection-box label { font-size: 14px; font-weight: 700; color: #0066cc; display: block; margin-bottom: 8px; }
+    
+    .button-selector { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+    .select-btn { border: 2px solid #ccc; background: #fff; color: #333; border-radius: 6px; padding: 6px 14px; font-size: 14px; font-weight: 700; cursor: pointer; transition: 0.15s; }
+    .select-btn:hover { background: #eef6ff; border-color: #0066cc; color: #0066cc; }
+    .select-btn.active { background: #0066cc; color: #fff; border-color: #0066cc; box-shadow: 0 2px 6px rgba(0,102,204,0.35); }
+
+    .status-hint { font-size: 12px; color: #666; margin-top: 6px; }
+
+    .checkbox-row { display: flex; align-items: center; gap: 8px; margin: 12px 0 10px 0; padding: 8px 10px; background: #eef6ff; border: 1px solid #cce2ff; border-radius: 6px; font-size: 13px; font-weight: 600; color: #0052a3; }
+    .checkbox-row input { width: 16px; height: 16px; cursor: pointer; }
+
+    .toggle-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 4px; }
+    .toggle-btn { border: 1px solid #ccc; background: #fff; color: #444; border-radius: 5px; padding: 5px 9px; font-size: 12px; font-weight: 500; cursor: pointer; transition: 0.15s; }
+    .toggle-btn:hover { background: #eef6ff; border-color: #0066cc; }
+    .toggle-btn.active { background: #0066cc; color: #fff; border-color: #0066cc; }
+
+    /* Weekplanner */
+    .planner-section { display: none; margin-bottom: 16px; }
+    .planner-alert { background: #fff8e1; border: 1px solid #ffe082; color: #b78103; padding: 12px; border-radius: 6px; font-size: 13px; font-weight: 600; text-align: center; margin-bottom: 12px; }
+    
+    .week-card { background: #ffffff; border: 1px solid #d0d7de; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .week-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .week-title { font-size: 14px; font-weight: 700; color: #0066cc; }
+    .slot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+    .slot-item label { display: block; font-size: 11px; color: #666; margin-bottom: 3px; }
+    .slot-item select { width: 100%; padding: 5px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; background: #fff; transition: 0.2s; }
+
+    .add-week-btn { background: #fff; border: 1px dashed #0066cc; color: #0066cc; border-radius: 6px; width: 100%; padding: 8px; font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: 16px; }
+    .add-week-btn:hover { background: #eef6ff; }
+
+    .action-btn { width: 100%; padding: 13px; font-size: 15px; font-weight: 600; color: white; background: #0066cc; border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+    .action-btn:hover { background: #0052a3; }
+    .action-btn:disabled { background: #b0c4de; cursor: not-allowed; }
+
+    #status { margin-top: 14px; font-weight: 600; text-align: center; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Spelling overschrijf boekje maker</h2>
+    <div style="background: #f8f9fa; border: 1px solid #e2e6ea; border-radius: 8px; padding: 12px 16px; margin: 0 auto 18px auto; font-size: 13px; color: #555; line-height: 1.6; text-align: left;">
+      <strong>Stap 1:</strong> Voeg de map 'overschrijfbladen' toe.<br>
+      <strong>Stap 2:</strong> Kies je groep.<br>
+      <strong>Stap 3:</strong> Kies het blok.<br>
+      <strong>Stap 4:</strong> Kies of je lessen wil overslaan zoals grammatica lessen en de toets (standaard worden deze overgeslagen).<br>
+      <strong>Stap 5:</strong> Kies of je oefenbladen achterin wil toevoegen en hoeveel.<br>
+      <strong>Stap 6:</strong> Kies per les welke categorie je de kinderen wil laten oefenen.<br>
+      <strong>Stap 7:</strong> Klik op Samenstellen en downloaden.<br>
+    </div>
+
+    <!-- Map bron & status -->
+    <div class="folder-box" onclick="document.getElementById('folderInput').click()">
+      <strong id="boxTitle">📁 Stap 1: Klik hier om de map met overschrijfbladen te kiezen</strong>
+      <div id="boxSub" style="font-size: 12px; color: #666; margin-top: 4px;"> OP-Vakken-Spelling-Boekjes maker-Overschrijfbladen</div>
+      <div class="folder-status" id="folderStatus"></div>
+    </div>
+    <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none">
+
+    <!-- Instellingen -->
+    <div class="settings">
+      <!-- 1. GROEP KEUZE -->
+      <div class="selection-box">
+        <label>STAP 2: KIES DE GROEP</label>
+        <div class="button-selector" id="groupSelector">
+          <button type="button" class="select-btn group-btn" data-groep="4" onclick="kiesGroep('4')">Groep 4</button>
+          <button type="button" class="select-btn group-btn" data-groep="5" onclick="kiesGroep('5')">Groep 5</button>
+          <button type="button" class="select-btn group-btn" data-groep="6" onclick="kiesGroep('6')">Groep 6</button>
+          <button type="button" class="select-btn group-btn" data-groep="7" onclick="kiesGroep('7')">Groep 7</button>
+          <button type="button" class="select-btn group-btn" data-groep="8" onclick="kiesGroep('8')">Groep 8</button>
+        </div>
+      </div>
+
+      <!-- 2. BLOK KEUZE -->
+      <div class="selection-box">
+        <label>STAP 3: KIES HET BLOK (1 t/m 10)</label>
+        <div class="button-selector" id="blockSelector">
+          <button type="button" class="select-btn block-btn" data-blok="1" onclick="kiesBlok('1')">1</button>
+          <button type="button" class="select-btn block-btn" data-blok="2" onclick="kiesBlok('2')">2</button>
+          <button type="button" class="select-btn block-btn" data-blok="3" onclick="kiesBlok('3')">3</button>
+          <button type="button" class="select-btn block-btn" data-blok="4" onclick="kiesBlok('4')">4</button>
+          <button type="button" class="select-btn block-btn" data-blok="5" onclick="kiesBlok('5')">5</button>
+          <button type="button" class="select-btn block-btn" data-blok="6" onclick="kiesBlok('6')">6</button>
+          <button type="button" class="select-btn block-btn" data-blok="7" onclick="kiesBlok('7')">7</button>
+          <button type="button" class="select-btn block-btn" data-blok="8" onclick="kiesBlok('8')">8</button>
+          <button type="button" class="select-btn block-btn" data-blok="9" onclick="kiesBlok('9')">9</button>
+          <button type="button" class="select-btn block-btn" data-blok="10" onclick="kiesBlok('10')">10</button>
+        </div>
+        <div class="status-hint" id="blokStatusText">Nog geen blok gekozen (optioneel)</div>
+      </div>
+
+      <!-- Voorpagina optie -->
+      <div class="checkbox-row">
+        <input type="checkbox" id="addCoverPage" checked>
+        <label for="addCoverPage" style="cursor:pointer;">Standaard voorpagina toevoegen (met groep en blok)</label>
+      </div>
+
+      <!-- Lessen overslaan & Oefenbladen -->
+      <div style="margin-top: 10px;">
+        <label style="font-weight: 500; font-size: 14px; color: #333; display: block; margin-bottom: 6px;">Lessen overslaan (stap 4):</label>
+        <div class="toggle-group">
+          <button type="button" class="toggle-btn active" id="btnSkipGrammatica" onclick="toggleOption('skipGrammatica')">Grammatica lessen overslaan (lessen 3)</button>
+          <button type="button" class="toggle-btn active" id="btnSkipToets" onclick="toggleOption('skipToets')">Toets overslaan (les 3.4)</button>
+        </div>
+
+        <hr style="border: none; border-top: 1px dashed #d5dbe0; margin: 16px 0; width: 100%;">
+
+        <label style="font-weight: 500; font-size: 14px; color: #333; display: block; margin-bottom: 6px;">Oefenbladen (stap 5):</label>
+        <div style="display: inline-flex; align-items: center; gap: 6px; margin-top: 4px;">
+          <button type="button" class="toggle-btn" id="btnAddOefenbladen" onclick="toggleOption('addOefenbladen')">
+            + Oefenbladen toevoegen <span id="oefenTeller" style="font-weight:400; opacity:0.85;">(kies groep)</span>
+          </button>
+          <input type="number" id="oefenbladenAantal" value="5" min="1" max="50" style="width: 46px; padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; text-align: center;" title="Aantal extra oefenbladen">
+          <span style="font-size: 12px; color: #666;">bladen achterin</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. WEEKPLANNER -->
+    <div class="planner-section" id="plannerSection">
+      <div id="plannerAlert" class="planner-alert">👆 Kies hierboven eerst een groep om de categorieën te laden.</div>
+      <h3 id="plannerHeader" style="font-size: 15px; margin: 0 0 10px 0; display:none;">Kies categorieën per week (stap 6):</h3>
+      <div id="weeksContainer"></div>
+      <button type="button" class="add-week-btn" id="addWeekBtn" style="display:none;" onclick="voegWeekToe()">+ Nog een week toevoegen</button>
+    </div>
+
+    <!-- 4. ACTIEKNOP -->
+    <button class="action-btn" id="processBtn" disabled onclick="genereerWerkboek()">Samenstellen en downloaden (stap 7)</button>
+    <div id="status"></div>
+  </div>
+
+  <script>
+    const { PDFDocument, rgb, StandardFonts } = PDFLib;
+    const folderInput = document.getElementById('folderInput');
+    const folderStatus = document.getElementById('folderStatus');
+    const boxTitle = document.getElementById('boxTitle');
+    const boxSub = document.getElementById('boxSub');
+    const plannerSection = document.getElementById('plannerSection');
+    const plannerAlert = document.getElementById('plannerAlert');
+    const plannerHeader = document.getElementById('plannerHeader');
+    const addWeekBtn = document.getElementById('addWeekBtn');
+    const weeksContainer = document.getElementById('weeksContainer');
+    const processBtn = document.getElementById('processBtn');
+    const status = document.getElementById('status');
+    const oefenTeller = document.getElementById('oefenTeller');
+    const blokStatusText = document.getElementById('blokStatusText');
+
+    let actieveGroep = '';
+    let actiefBlok = '';
+    let skipGrammatica = true;
+    let skipToets = true;
+    let addOefenbladen = false;
+
+    let databasePerGroep = { '4': {}, '5': {}, '6': {}, '7': {}, '8': {} };
+    let oefenbladenPerGroep = { '4': [], '5': [], '6': [], '7': [], '8': [] };
+    let weekCount = 0;
+
+    function kiesBlok(blokNr) {
+      actiefBlok = (actiefBlok === blokNr) ? '' : blokNr;
+      document.querySelectorAll('.block-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.blok === actiefBlok);
+      });
+
+      if (actiefBlok) {
+        blokStatusText.innerText = `✓ Geselecteerd: Blok ${actiefBlok}`;
+        blokStatusText.style.color = '#0066cc';
+        blokStatusText.style.fontWeight = '700';
+      } else {
+        blokStatusText.innerText = 'Nog geen blok gekozen (optioneel)';
+        blokStatusText.style.color = '#666';
+        blokStatusText.style.fontWeight = 'normal';
+      }
+    }
+
+    function toggleOption(optie) {
+      if (optie === 'skipGrammatica') {
+        skipGrammatica = !skipGrammatica;
+        document.getElementById('btnSkipGrammatica').classList.toggle('active', skipGrammatica);
+        updateDisabledSlots();
+      } else if (optie === 'skipToets') {
+        skipToets = !skipToets;
+        document.getElementById('btnSkipToets').classList.toggle('active', skipToets);
+        updateDisabledSlots();
+      } else if (optie === 'addOefenbladen') {
+        addOefenbladen = !addOefenbladen;
+        document.getElementById('btnAddOefenbladen').classList.toggle('active', addOefenbladen);
+      }
+    }
+
+    function updateDisabledSlots() {
+      document.querySelectorAll('.week-card').forEach(card => {
+        const weekNr = parseInt(card.id.replace('weekCard_', ''), 10);
+        
+        // Les 3 (grammatica)
+        const les3Select = card.querySelector('[data-les="3"]');
+        if (les3Select) {
+          les3Select.disabled = skipGrammatica;
+          if (skipGrammatica) les3Select.value = '';
+          les3Select.style.background = skipGrammatica ? '#f1f3f5' : '#fff';
+          les3Select.style.color = skipGrammatica ? '#888' : '#333';
+          les3Select.style.cursor = skipGrammatica ? 'not-allowed' : 'default';
+          if (les3Select.options[0]) {
+            les3Select.options[0].text = skipGrammatica ? '-- Overgeslagen (grammatica) --' : '-- Kies categorie --';
+          }
+        }
+
+        // Week 3, Les 4 (toets)
+        if (weekNr === 3) {
+          const les4Select = card.querySelector('[data-les="4"]');
+          if (les4Select) {
+            les4Select.disabled = skipToets;
+            if (skipToets) les4Select.value = '';
+            les4Select.style.background = skipToets ? '#f1f3f5' : '#fff';
+            les4Select.style.color = skipToets ? '#888' : '#333';
+            les4Select.style.cursor = skipToets ? 'not-allowed' : 'default';
+            if (les4Select.options[0]) {
+              les4Select.options[0].text = skipToets ? '-- Overgeslagen (toets) --' : '-- Kies categorie --';
+            }
+          }
+        }
+      });
+    }
+
+    function updateOefenTeller() {
+      if (!actieveGroep) {
+        oefenTeller.innerText = '(kies groep)';
+        return;
+      }
+      const count = (oefenbladenPerGroep[actieveGroep] || []).length;
+      oefenTeller.innerText = `(${count} beschikbaar)`;
+      oefenTeller.style.color = count > 0 ? '#167a32' : '#cc0000';
+    }
+
+    function indexeerBestand(padStr, file) {
+      const schonePad = padStr.replace(/\\/g, '/');
+      const delen = schonePad.split('/').filter(Boolean);
+      if (delen.length === 0) return;
+      const bestandsnaam = delen[delen.length - 1];
+      if (!bestandsnaam.toLowerCase().endsWith('.pdf')) return;
+
+      let groep = '';
+      let groepIdx = -1;
+
+      for (let i = delen.length - 2; i >= 0; i--) {
+        const seg = delen[i].trim();
+        const m = seg.match(/^(?:groep|gr)[\s-_]*([4-8])$/i);
+        if (m) {
+          groep = m[1];
+          groepIdx = i;
+          break;
+        }
+      }
+
+      if (!groep) {
+        for (let i = delen.length - 2; i >= 0; i--) {
+          const seg = delen[i].trim();
+          if (/groep\s*4\s*t(?:m|ot)\s*8/i.test(seg)) continue;
+          const m = seg.match(/groep[\s-_]*([4-8])/i);
+          if (m) {
+            groep = m[1];
+            groepIdx = i;
+            break;
+          }
+        }
+      }
+
+      if (!groep || !databasePerGroep[groep]) return;
+
+      const isOefenblad = delen.slice(groepIdx + 1, delen.length - 1).some(d => /oefenblad/i.test(d)) || /oefenblad/i.test(bestandsnaam);
+
+      if (isOefenblad) {
+        if (!oefenbladenPerGroep[groep]) oefenbladenPerGroep[groep] = [];
+        oefenbladenPerGroep[groep].push({
+          name: bestandsnaam,
+          file: file
+        });
+        return;
+      }
+
+      let categorie = '';
+      if (groepIdx !== -1 && delen.length > groepIdx + 2) {
+        categorie = delen[groepIdx + 1].trim();
+      } else {
+        let clean = bestandsnaam.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
+        clean = clean.replace(/\s*\d+\s*$/g, '').trim();
+        categorie = clean || 'Algemeen';
+      }
+
+      if (!databasePerGroep[groep][categorie]) {
+        databasePerGroep[groep][categorie] = [];
+      }
+
+      databasePerGroep[groep][categorie].push({
+        name: bestandsnaam,
+        file: file
+      });
+    }
+
+    folderInput.addEventListener('change', (e) => {
+      const bestanden = Array.from(e.target.files).filter(f => f.name.toLowerCase().endsWith('.pdf'));
+      if (bestanden.length === 0) {
+        alert("Geen PDF-bestanden gevonden in deze map.");
+        return;
+      }
+
+      databasePerGroep = { '4': {}, '5': {}, '6': {}, '7': {}, '8': {} };
+      oefenbladenPerGroep = { '4': [], '5': [], '6': [], '7': [], '8': [] };
+
+      bestanden.forEach(file => {
+        const relPad = file.webkitRelativePath || file.name;
+        indexeerBestand(relPad, file);
+      });
+
+      boxTitle.innerText = '📁 Werkbladen ingeladen';
+      boxSub.innerText = 'Klik hier om opnieuw een andere map te kiezen indien gewenst.';
+      folderStatus.innerText = `✓ ${bestanden.length} bestanden geïndexeerd.`;
+      plannerSection.style.display = 'block';
+
+      if (actieveGroep) {
+        herbouwPlannerVoorGroep();
+      }
+    });
+
+    function kiesGroep(groepNr) {
+      actieveGroep = groepNr;
+      document.querySelectorAll('.group-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.groep === actieveGroep);
+      });
+      herbouwPlannerVoorGroep();
+    }
+
+    function herbouwPlannerVoorGroep() {
+      plannerAlert.style.display = 'none';
+      plannerHeader.style.display = 'block';
+      addWeekBtn.style.display = 'block';
+
+      weeksContainer.innerHTML = '';
+      weekCount = 0;
+
+      for (let i = 0; i < 4; i++) {
+        voegWeekToe();
+      }
+
+      updateOefenTeller();
+      updateDisabledSlots();
+      processBtn.disabled = false;
+    }
+
+    function voegWeekToe() {
+      if (!actieveGroep) return;
+      weekCount++;
+      const weekIndex = weekCount;
+      const weekCard = document.createElement('div');
+      weekCard.className = 'week-card';
+      weekCard.id = `weekCard_${weekIndex}`;
+
+      const categorieen = databasePerGroep[actieveGroep] || {};
+      const catNamen = Object.keys(categorieen).sort((a, b) =>
+        a.localeCompare(b, 'nl', { numeric: true, sensitivity: 'base' })
+      );
+
+      let optiesHtml = '<option value="">-- Kies categorie --</option>';
+      catNamen.forEach(c => {
+        optiesHtml += `<option value="${c}">${c} (${categorieen[c].length} bladen)</option>`;
+      });
+
+      const les4Label = (weekIndex === 3) ? 'Les 4 (toets)' : 'Les 4';
+
+      weekCard.innerHTML = `
+        <div class="week-header">
+          <span class="week-title">Week ${weekIndex}</span>
+          <span style="font-size: 11px; color: #777;">4 of 5 bladen (Groep ${actieveGroep})</span>
+        </div>
+        <div class="slot-grid">
+          <div class="slot-item"><label>Les 1</label><select class="week-${weekIndex}-slot" data-les="1">${optiesHtml}</select></div>
+          <div class="slot-item"><label>Les 2</label><select class="week-${weekIndex}-slot" data-les="2">${optiesHtml}</select></div>
+          <div class="slot-item"><label>Les 3 (optioneel)</label><select class="week-${weekIndex}-slot" data-les="3">${optiesHtml}</select></div>
+          <div class="slot-item"><label>${les4Label}</label><select class="week-${weekIndex}-slot" data-les="4">${optiesHtml}</select></div>
+          <div class="slot-item"><label>Les 5</label><select class="week-${weekIndex}-slot" data-les="5">${optiesHtml}</select></div>
+        </div>
+      `;
+      weeksContainer.appendChild(weekCard);
+      updateDisabledSlots();
+    }
+
+    function shuffleArray(arr) {
+      const res = [...arr];
+      for (let i = res.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [res[i], res[j]] = [res[j], res[i]];
+      }
+      return res;
+    }
+
+    function tekenVoorpagina(mergedPdf, fontBold, fontRegular, groep, blok) {
+      const page = mergedPdf.insertPage(0, [595.28, 841.89]);
+      const { width, height } = page.getSize();
+
+      const blauw = rgb(0 / 255, 102 / 255, 204 / 255);
+      const donkerGrijs = rgb(45 / 255, 55 / 255, 72 / 255);
+      const lichtBlauw = rgb(238 / 255, 246 / 255, 255 / 255);
+      const randKleur = rgb(190 / 255, 215 / 255, 245 / 255);
+
+      page.drawRectangle({
+        x: 35, y: 35, width: width - 70, height: height - 70,
+        borderWidth: 2, borderColor: blauw
+      });
+
+      page.drawRectangle({
+        x: 40, y: 40, width: width - 80, height: height - 80,
+        borderWidth: 0.75, borderColor: randKleur
+      });
+
+      page.drawRectangle({
+        x: 35, y: height - 105, width: width - 70, height: 50, color: blauw
+      });
+
+      let topTekst = '';
+      if (groep && blok) topTekst = `GROEP ${groep}   •   BLOK ${blok}`;
+      else if (groep) topTekst = `GROEP ${groep}`;
+      else if (blok) topTekst = `BLOK ${blok}`;
+      else topTekst = 'SPELLINGWERKBOEK';
+
+      const topFontSize = 19;
+      const topTextWidth = fontBold.widthOfTextAtSize(topTekst, topFontSize);
+      page.drawText(topTekst, {
+        x: (width - topTextWidth) / 2, y: height - 86,
+        size: topFontSize, font: fontBold, color: rgb(1, 1, 1)
+      });
+
+      const titel = 'SPELLING';
+      const titelSize = 42;
+      const titelWidth = fontBold.widthOfTextAtSize(titel, titelSize);
+      page.drawText(titel, {
+        x: (width - titelWidth) / 2, y: height - 190,
+        size: titelSize, font: fontBold, color: blauw
+      });
+
+      const subTitel = 'Oefen- en werkboek';
+      const subSize = 16;
+      const subWidth = fontRegular.widthOfTextAtSize(subTitel, subSize);
+      page.drawText(subTitel, {
+        x: (width - subWidth) / 2, y: height - 220,
+        size: subSize, font: fontRegular, color: donkerGrijs
+      });
+
+      page.drawLine({
+        start: { x: (width / 2) - 80, y: height - 240 },
+        end: { x: (width / 2) + 80, y: height - 240 },
+        thickness: 2, color: blauw
+      });
+
+      const boxW = width - 150;
+      const boxH = 280;
+      const boxX = 75;
+      const boxY = height - 550;
+
+      page.drawRectangle({
+        x: boxX, y: boxY, width: boxW, height: boxH,
+        borderWidth: 1.5, borderColor: randKleur, color: lichtBlauw
+      });
+
+      const randomLetters = [
+        { text: 'A', x: 35, y: 220, size: 38, bold: true, color: rgb(0.12, 0.45, 0.8) },
+        { text: 'b', x: 110, y: 235, size: 24, bold: false, color: rgb(0.35, 0.55, 0.75) },
+        { text: 'S', x: 185, y: 210, size: 44, bold: true, color: rgb(0.0, 0.4, 0.8) },
+        { text: 'ou', x: 275, y: 230, size: 30, bold: false, color: rgb(0.2, 0.5, 0.78) },
+        { text: 'E', x: 375, y: 215, size: 36, bold: true, color: rgb(0.1, 0.42, 0.78) },
+        { text: 'k', x: 65, y: 155, size: 32, bold: false, color: rgb(0.3, 0.55, 0.72) },
+        { text: 'L', x: 150, y: 165, size: 40, bold: true, color: rgb(0.05, 0.38, 0.75) },
+        { text: 'ij', x: 235, y: 150, size: 28, bold: false, color: rgb(0.25, 0.52, 0.76) },
+        { text: 'n', x: 305, y: 160, size: 34, bold: true, color: rgb(0.12, 0.45, 0.8) },
+        { text: 'g', x: 390, y: 145, size: 42, bold: true, color: rgb(0.0, 0.4, 0.8) },
+        { text: 'd', x: 40, y: 85, size: 28, bold: false, color: rgb(0.28, 0.52, 0.72) },
+        { text: 'T', x: 115, y: 75, size: 36, bold: true, color: rgb(0.15, 0.45, 0.8) },
+        { text: 'ch', x: 195, y: 85, size: 32, bold: false, color: rgb(0.2, 0.48, 0.75) },
+        { text: 'P', x: 280, y: 70, size: 38, bold: true, color: rgb(0.08, 0.4, 0.78) },
+        { text: 'ei', x: 365, y: 80, size: 28, bold: false, color: rgb(0.3, 0.55, 0.74) },
+        { text: 'z', x: 75, y: 25, size: 26, bold: false, color: rgb(0.35, 0.58, 0.76) },
+        { text: 'W', x: 155, y: 20, size: 34, bold: true, color: rgb(0.12, 0.45, 0.8) },
+        { text: 'r', x: 245, y: 22, size: 26, bold: false, color: rgb(0.28, 0.52, 0.72) },
+        { text: 'M', x: 330, y: 18, size: 34, bold: true, color: rgb(0.08, 0.4, 0.78) }
+      ];
+
+      randomLetters.forEach(l => {
+        page.drawText(l.text, {
+          x: boxX + l.x, y: boxY + l.y, size: l.size,
+          font: l.bold ? fontBold : fontRegular, color: l.color
+        });
+      });
+
+      const veldX = 75;
+      page.drawText('Naam:', {
+        x: veldX, y: 155, size: 14, font: fontBold, color: donkerGrijs
+      });
+      page.drawLine({
+        start: { x: veldX + 60, y: 155 }, end: { x: width - 75, y: 155 },
+        thickness: 1.5, color: donkerGrijs
+      });
+    }
+
+    async function genereerWerkboek() {
+      if (!actieveGroep) {
+        alert("Selecteer eerst een groep (4 t/m 8) bij STAP 2.");
+        return;
+      }
+
+      const catDatabase = databasePerGroep[actieveGroep] || {};
+      const geschuddeVoorraad = {};
+      Object.keys(catDatabase).forEach(cat => {
+        geschuddeVoorraad[cat] = shuffleArray(catDatabase[cat]);
+      });
+
+      const prefix = actiefBlok;
+      const geselecteerdeItems = [];
+      const verbruikteBladen = {};
+
+      for (let w = 1; w <= weekCount; w++) {
+        const weekCard = document.getElementById(`weekCard_${w}`);
+        if (!weekCard) continue;
+
+        for (let lesNr = 1; lesNr <= 5; lesNr++) {
+          const sel = weekCard.querySelector(`[data-les="${lesNr}"]`);
+          if (!sel || !sel.value) continue;
+
+          const cat = sel.value;
+          const voorraad = geschuddeVoorraad[cat] || [];
+          if (voorraad.length === 0) continue;
+
+          if (!verbruikteBladen[cat]) verbruikteBladen[cat] = 0;
+          const index = verbruikteBladen[cat] % voorraad.length;
+          const bladItem = voorraad[index];
+          verbruikteBladen[cat]++;
+
+          const lesLabel = prefix ? `${prefix}.${w}.${lesNr}` : `${w}.${lesNr}`;
+          geselecteerdeItems.push({
+            ...bladItem,
+            lesLabel: lesLabel
+          });
+        }
+      }
+
+      if (geselecteerdeItems.length === 0) {
+        alert("Selecteer eerst ten minste één categorie in de weekplanner.");
+        return;
+      }
+
+      status.style.color = '#333';
+      status.innerText = "Bezig met samenvoegen en nummeren...";
+      processBtn.disabled = true;
+
+      try {
+        const mergedPdf = await PDFDocument.create();
+        const fontRegular = await mergedPdf.embedFont(StandardFonts.Helvetica);
+        const fontBold = await mergedPdf.embedFont(StandardFonts.HelveticaBold);
+        const addCover = document.getElementById('addCoverPage').checked;
+
+        if (addCover) {
+          tekenVoorpagina(mergedPdf, fontBold, fontRegular, actieveGroep, prefix);
+        }
+
+        for (const item of geselecteerdeItems) {
+          const arrayBuffer = await item.file.arrayBuffer();
+          const doc = await PDFDocument.load(arrayBuffer);
+          const copiedPages = await mergedPdf.copyPages(doc, doc.getPageIndices());
+
+          for (const page of copiedPages) {
+            const newPage = mergedPdf.addPage(page);
+
+            const tekst = item.lesLabel;
+            const { width } = newPage.getSize();
+            const fontSize = 14;
+            const textWidth = fontRegular.widthOfTextAtSize(tekst, fontSize);
+
+            newPage.drawText(tekst, {
+              x: (width - textWidth) / 2,
+              y: 30,
+              size: fontSize,
+              font: fontRegular,
+              color: rgb(0, 0, 0)
+            });
+          }
+        }
+
+        if (addOefenbladen) {
+          const beschikbareOefenbladen = oefenbladenPerGroep[actieveGroep] || [];
+          if (beschikbareOefenbladen.length === 0) {
+            alert(`Let op: Er zijn geen bestanden gevonden in het mapje 'oefenblad' van Groep ${actieveGroep}. Het boekje wordt zonder extra oefenbladen gedownload.`);
+          } else {
+            const aantalGewenst = parseInt(document.getElementById('oefenbladenAantal').value, 10) || 5;
+            const geschud = shuffleArray(beschikbareOefenbladen);
+            const gekozenOefenbladen = geschud.slice(0, Math.min(aantalGewenst, geschud.length));
+
+            for (const item of gekozenOefenbladen) {
+              const arrayBuffer = await item.file.arrayBuffer();
+              const doc = await PDFDocument.load(arrayBuffer);
+              const copiedPages = await mergedPdf.copyPages(doc, doc.getPageIndices());
+              copiedPages.forEach(p => mergedPdf.addPage(p));
+            }
+          }
+        }
+
+        let bestandsnaam = `spelling groep ${actieveGroep}`;
+        if (prefix) bestandsnaam += ` blok ${prefix}`;
+        bestandsnaam += '.pdf';
+
+        const pdfBytes = await mergedPdf.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = bestandsnaam;
+        link.click();
+
+        status.style.color = '#167a32';
+        status.innerText = `Klaar! Opgeslagen als "${bestandsnaam}".`;
+      } catch (err) {
+        status.style.color = '#cc0000';
+        status.innerText = "Fout bij verwerken: " + err.message;
+      } finally {
+        processBtn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
